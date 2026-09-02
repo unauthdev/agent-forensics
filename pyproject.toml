@@ -1,0 +1,18 @@
+[project]
+name = "agent-forensics"
+version = "0.1.0"
+description = "Reconstruct what an AI agent did, after the fact, from native session artifacts. Deterministic, offline."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "unauth.dev", email = "security@unauth.dev" }]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["forensics"]

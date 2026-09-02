@@ -1,0 +1,17 @@
+{
+  "generated": "2026-09-02T18:34:47.735Z",
+  "rows": 39,
+  "sources": [
+    {
+      "bytes": 6747,
+      "path": "forensics/fixtures/synthetic-incident-claude.jsonl",
+      "sha256": "5a4f343988d142fb48af632c1bf4a76ceb40fd73e7c28254971eb5df031663c2"
+    },
+    {
+      "bytes": 5529,
+      "path": "forensics/fixtures/synthetic-incident-kimi.jsonl",
+      "sha256": "049dd62cc6fd44d7d3fc995d2e850dd76273bc22291bb50cfb20d4f3cd0e997a"
+    }
+  ],
+  "transcript_sha256": "05d30f382a61c99a7c8a16fb07dad5e191d63f11fbcf239834fb5530f47caf87"
+}
