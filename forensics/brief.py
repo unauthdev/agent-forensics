@@ -20,7 +20,10 @@ def _sanitize(s: str | None) -> str:
         return "-"
     home = str(Path.home())
     out = s.replace(home, "~")
-    return out.replace(Path.home().name, "user") if home not in s else out
+    # Always scrub the bare username too: slugs and residual path
+    # fragments keep it even after the home replacement above
+    # (privacy-first: over-matching a name is fine, leaking is not).
+    return out.replace(Path.home().name, "user")
 
 
 def find_latest(claude_root: Path | None = None,
@@ -80,7 +83,7 @@ def render_brief(events: list[dict], sources: list[Path], fmt: str,
     if built:
         lines += [f"- `{b}`" for b in built[:20]]
         if len(built) > 20:
-            lines.append(f"- …and {len(built) - 20} more (timeline.md has all)")
+            lines.append(f"- ...and {len(built) - 20} more (timeline.md has all)")
     else:
         lines.append("No file targets recorded in this session.")
     lines.append("")
@@ -93,7 +96,7 @@ def render_brief(events: list[dict], sources: list[Path], fmt: str,
     if ran:
         seen: list[str] = []
         for e in ran:
-            cmd = (e.get("command") or "").replace("\n", "\\n")[:100]
+            cmd = _sanitize(e.get("command") or "").replace("\n", "\\n")[:100]
             if cmd not in seen:
                 seen.append(cmd)
             if len(seen) >= 8:
@@ -114,8 +117,8 @@ def render_brief(events: list[dict], sources: list[Path], fmt: str,
             fl = boundary_flags_event(e)
             if not fl:
                 continue
-            cmd = ((e.get("command") or e.get("target") or "")
-                   .replace("\n", "\\n").replace("|", "\\|"))[:110]
+            cmd = _sanitize((e.get("command") or e.get("target") or "")) \
+                .replace("\n", "\\n").replace("|", "\\|")[:110]
             lines.append(f"- `{e.get('ts') or '-'}` {', '.join(fl)}: `{cmd}` "
                          f"({e.get('phase') or '-'}/{e.get('rule') or '-'})")
             n += 1
@@ -129,8 +132,9 @@ def render_brief(events: list[dict], sources: list[Path], fmt: str,
     lines.append("")
     if short:
         for i, item in enumerate(short, 1):
-            cmd = (item["command"].replace("\n", "\\n").replace("|", "\\|"))[:110]
-            lines.append(f"{i}. {RANK_NAMES[item['rank']]} — "
+            cmd = _sanitize(item["command"]) \
+                .replace("\n", "\\n").replace("|", "\\|")[:110]
+            lines.append(f"{i}. {RANK_NAMES[item['rank']]} - "
                          f"{item['phase'] or '-'}/{item['rule'] or '-'}: "
                          f"{item['why']}")
             lines.append(f"   `{cmd}`")
@@ -141,9 +145,9 @@ def render_brief(events: list[dict], sources: list[Path], fmt: str,
     try:
         sha = sha256_bytes(sources[0].read_bytes())[:16]
         extra = "" if len(sources) == 1 else f" (+{len(sources) - 1} more files)"
-        lines.append(f"Receipt: sha256 {sha}…{extra}, "
+        lines.append(f"Receipt: sha256 {sha}...{extra}, "
                      f"{len(events)} events. Labels are deterministic rule "
-                     f"matches over reconstructed commands — "
+                     f"matches over reconstructed commands - "
                      f"classifications, not accusations.")
     except OSError:
         lines.append("Receipt: source unreadable for hashing. "

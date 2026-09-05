@@ -112,3 +112,17 @@ def test_cli_last_resolves_newest(tmp_path, capsys):
                  "--droid-root", str(tmp_path / "nosuch")]) == 0
     out = capsys.readouterr().out
     assert "b.jsonl" in out and "# Session brief" in out
+
+
+def test_sanitize_hides_username_in_slug():
+    # regression 2026-09-05: slug strings keep the operator name even when
+    # the home dir itself was already replaced - scrub the bare name too
+    from pathlib import Path
+
+    from forensics.brief import _sanitize
+    home = str(Path.home())
+    name = Path.home().name
+    slug = f"{home}/sessions/-Users-{name}-proj/x.jsonl"
+    out = _sanitize(slug)
+    assert name not in out
+    assert "-Users-user-proj" in out

@@ -99,7 +99,7 @@ def digest(events: list[dict]) -> list[str]:
                                             causes.most_common())
                  + " (timeline.md has the list)")
     else:
-        line3 = ("read first: none — no credential touches, outside-cwd "
+        line3 = ("read first: none - no credential touches, outside-cwd "
                  "paths, or high-risk matches")
     if flags:
         line3 += f" | boundaries: " + ", ".join(
@@ -116,7 +116,7 @@ def render_md(events: list[dict], limit: int = 10,
     lines.append("## Read this first")
     lines.append("")
     if short:
-        lines.append("Ranked shortlist for review — credential touches, "
+        lines.append("Ranked shortlist for review - credential touches, "
                      "then paths outside the working dir, then egress on "
                      "high-risk matches; at most " + str(per_rule) +
                      " per rule so one pattern cannot hide the rest. "
@@ -125,8 +125,8 @@ def render_md(events: list[dict], limit: int = 10,
         lines.append("")
         for i, item in enumerate(short, 1):
             cmd = (item["command"].replace("\n", "\\n").replace("|", "\\|"))[:110]
-            lines.append(f"{i}. `{item['ts'] or '-'}` — "
-                         f"{RANK_NAMES[item['rank']]} — "
+            lines.append(f"{i}. `{item['ts'] or '-'}` - "
+                         f"{RANK_NAMES[item['rank']]} - "
                          f"{item['phase'] or '-'}/{item['rule'] or '-'}: "
                          f"{item['why']}")
             lines.append(f"   `{cmd}`")
