@@ -8,6 +8,7 @@ never "attacker did".
 """
 from __future__ import annotations
 
+import os
 import re
 from collections import Counter
 
@@ -34,6 +35,11 @@ def boundary_flags(command: str, cwd: str | None) -> list[str]:
     return flags
 
 
+def _real(path: str) -> str:
+    """Compare through symlinks (macOS /tmp -> /private/tmp), lexically."""
+    return os.path.realpath(path)
+
+
 def boundary_flags_event(event: dict) -> list[str]:
     """Boundary flags over a normalized event (command and target aware)."""
     command = event.get("command") or ""
@@ -45,12 +51,16 @@ def boundary_flags_event(event: dict) -> list[str]:
             target = m.group(1)
             if target.startswith(">"):
                 continue
-            if target.startswith("/") and not target.startswith(cwd):
+            if target.startswith("/") and _real(target) != _real(cwd) \
+                    and not _real(target).startswith(_real(cwd).rstrip("/") + "/"):
                 flags.append("read-outside-cwd")
                 break
     target = event.get("target")
-    if target and cwd and target.startswith("/") and not target.startswith(cwd):
-        flags.append("path-outside-cwd")
+    if target and cwd and target.startswith("/"):
+        real_target, real_cwd = _real(target), _real(cwd)
+        if real_target != real_cwd \
+                and not real_target.startswith(real_cwd.rstrip("/") + "/"):
+            flags.append("path-outside-cwd")
     return flags
 
 

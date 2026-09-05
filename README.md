@@ -22,6 +22,8 @@ This does.
 
 - Ingests native session logs: Claude Code session JSONL, Kimi Code
   wire.jsonl (including its approval ledger and steer/cancel records),
+  saved cursor-agent stream-json transcripts (`-p --output-format
+  stream-json` tee'd to a file),
   and agent-evidence-0.2 transcript bundles (chain-verified while
   streaming; a broken chain aborts ingestion).
 - Classifies every tool call against a published incident taxonomy
@@ -76,7 +78,7 @@ Tests (stdlib only; pytest for the suite):
 
 ## Limits
 
-- Two native formats today (Claude Code, Kimi Code) plus evidence
+- Four native formats today (Claude Code, Kimi Code, saved cursor-agent transcripts, Factory Droid sessions) plus evidence
   transcripts. Adapters are one file each; PRs welcome.
 - If the artifacts are gone (ephemeral pods, wiped runners), there is
   nothing to read. Collect before teardown.

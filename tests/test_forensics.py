@@ -201,6 +201,8 @@ def test_format_autodetect(tmp_path):
     from forensics.__main__ import detect_format
     assert detect_format(_native_session(tmp_path)) == "claude"
     assert detect_format(_kimi_wire(tmp_path)) == "kimi"
+    assert detect_format(FIXTURES / "synthetic-cursor.jsonl") == "cursor"
+    assert detect_format(FIXTURES / "synthetic-droid.jsonl") == "droid"
 
 
 FIXTURES = Path(__file__).resolve().parent.parent / "forensics" / "fixtures"
@@ -453,6 +455,82 @@ def test_ledger_rebuild_is_byte_stable(tmp_path):
     assert (tmp_path / "l1" / "ledger.jsonl").read_bytes() == \
         (tmp_path / "l2" / "ledger.jsonl").read_bytes()
     assert verify_file(tmp_path / "l1" / "ledger.jsonl")
+
+
+def test_cursor_ingest_call_result_linkage():
+    from forensics.ingest_cursor import ingest_file as ingest_cursor
+    events = ingest_cursor(FIXTURES / "synthetic-cursor.jsonl")
+    kinds = [e["kind"] for e in events]
+    assert kinds.count("user_prompt") == 1
+    assert kinds.count("assistant_text") == 1
+    assert kinds.count("tool_call") == 2
+    assert kinds.count("tool_result") == 2
+    read = next(e for e in events if e["kind"] == "tool_call"
+                and e.get("tool") == "read")
+    assert read["target"] == "/w/app.conf" and read["command"] == ""
+    shell = next(e for e in events if e["kind"] == "tool_call"
+                 and e.get("tool") == "shell")
+    assert (shell["phase"], shell["rule"]) == (
+        "credential-access", "cred/k8s-serviceaccount")
+    assert shell["cwd"] == "/w"  # per-call workingDirectory wins
+    for res in (e for e in events if e["kind"] == "tool_result"):
+        assert res["tool_use_id"] in {"tc1", "tc2"}
+    calls = [e for e in events if e["kind"] == "tool_call"]
+    assert calls[0]["session"] == "syn-cursor-1"
+    text = render(events)
+    assert "credential-access" in text
+
+
+def test_cursor_prose_is_hashed_not_copied():
+    from forensics.ingest_cursor import ingest_file as ingest_cursor
+    events = ingest_cursor(FIXTURES / "synthetic-cursor.jsonl")
+    blob = json.dumps(events)
+    assert "check the config" not in blob  # prompt text never re-emitted
+
+
+def test_droid_ingest_call_result_linkage():
+    from forensics.ingest_droid import ingest_file as ingest_droid
+    events = ingest_droid(FIXTURES / "synthetic-droid.jsonl")
+    kinds = [e["kind"] for e in events]
+    assert kinds.count("user_prompt") == 1
+    assert kinds.count("assistant_text") == 1
+    assert kinds.count("tool_call") == 2
+    assert kinds.count("tool_result") == 2
+    read = next(e for e in events if e["kind"] == "tool_call"
+                and e.get("tool") == "Read")
+    assert read["target"] == "/w/app.conf" and read["command"] == ""
+    shell = next(e for e in events if e["kind"] == "tool_call"
+                 and e.get("tool") == "Execute")
+    assert (shell["phase"], shell["rule"]) == ("exfil", "exfil/outbound-post")
+    assert shell["cwd"] == "/w" and shell["session"] == "syn-droid-1"
+    for res in (e for e in events if e["kind"] == "tool_result"):
+        assert res["tool_use_id"] in {"td1", "td2"}
+    text = render(events)
+    assert "exfil" in text and "network-egress" in text
+
+
+def test_droid_prose_is_hashed_not_copied():
+    from forensics.ingest_droid import ingest_file as ingest_droid
+    events = ingest_droid(FIXTURES / "synthetic-droid.jsonl")
+    blob = json.dumps(events)
+    assert "[synthetic prompt]" not in blob
+    assert "[synthetic summary]" not in blob
+
+
+def test_ledger_indexes_droid_root(tmp_path):
+    import shutil
+    from forensics.ledger import build_ledger
+    droid_root = tmp_path / "sessions"
+    slug = droid_root / "-proj"
+    slug.mkdir(parents=True)
+    shutil.copy(FIXTURES / "synthetic-droid.jsonl", slug / "s1.jsonl")
+    out = tmp_path / "ledger"
+    manifest = build_ledger(None, None, out, droid_root)
+    assert manifest["sessions"] == 1
+    assert verify_file(out / "ledger.jsonl")
+    rows = [json.loads(l) for l in open(out / "ledger.jsonl")]
+    summaries = [r for r in rows if r["type"] == "session_summary"]
+    assert summaries[0]["payload"]["format"] == "droid"
 
 
 def test_review_first_caps_per_rule():

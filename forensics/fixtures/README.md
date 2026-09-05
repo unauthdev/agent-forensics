@@ -9,6 +9,10 @@ data, no real hosts (`.invalid` TLDs), no secrets.
   (recon -> credential-access -> evasion -> exfil -> dropper -> c2 -> pivot).
 - `synthetic-benign-*.jsonl`: ordinary dev sessions (should classify mostly
   no-phase).
+- `synthetic-cursor.jsonl`: saved cursor-agent stream-json shape (one read,
+  one credential-touch shell); prose is `[synthetic …]` placeholders.
+- `synthetic-droid.jsonl`: Factory Droid session shape (one read, one
+  exfil-shaped Execute); prose is `[synthetic …]` placeholders.
 
 Try it:
 

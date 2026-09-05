@@ -18,10 +18,12 @@ from .bundle import GENESIS, BundleWriter
 from .canonical import entry_hash, payload_hash
 from .canonical import sha256_bytes
 from .ingest_claude import ingest_file as ingest_claude
+from .ingest_droid import ingest_file as ingest_droid
 from .ingest_kimi import ingest_file as ingest_kimi
 
 DEFAULT_CLAUDE = Path.home() / ".claude" / "projects"
 DEFAULT_KIMI = Path.home() / ".kimi-code" / "sessions"
+DEFAULT_DROID = Path.home() / ".factory" / "sessions"
 
 
 def _sanitize(path, replacements=None) -> str:
@@ -77,12 +79,14 @@ def _summarize(path: Path, fmt: str, ingest, reps) -> dict:
 
 
 def build_ledger(claude_root: Path | None, kimi_root: Path | None,
-                 out_dir: Path) -> dict:
+                 out_dir: Path, droid_root: Path | None = None) -> dict:
     roots = []
     if claude_root:
         roots.append((claude_root, "claude", "*/*.jsonl", ingest_claude))
     if kimi_root:
         roots.append((kimi_root, "kimi", "*/*/agents/*/wire.jsonl", ingest_kimi))
+    if droid_root:
+        roots.append((droid_root, "droid", "*/*.jsonl", ingest_droid))
     reps = _replacements_for([r for r, _, _, _ in roots])
     w = BundleWriter([])
     w.add("run_start", {
